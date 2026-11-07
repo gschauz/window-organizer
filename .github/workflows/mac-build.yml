@@ -1,0 +1,53 @@
+name: Mac build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and package app
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      WINDOW_ORGANIZER_BUILD_DIR: ${{ github.workspace }}/.build
+      WINDOW_ORGANIZER_APP_PATH: ${{ github.workspace }}/dist/Window Organizer.app
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Show build tools
+        run: |
+          swift --version
+          xcodebuild -version
+          uname -m
+      - name: Run tests
+        run: bash scripts/test.sh
+      - name: Build app
+        run: bash scripts/build.sh
+      - name: Package and verify download
+        run: |
+          mkdir -p dist
+          codesign --verify --strict "$WINDOW_ORGANIZER_APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$WINDOW_ORGANIZER_APP_PATH" "dist/Window Organizer.zip"
+          ditto -x -k "dist/Window Organizer.zip" "$RUNNER_TEMP/verify-download"
+          codesign --verify --strict "$RUNNER_TEMP/verify-download/Window Organizer.app"
+          cmp "$WINDOW_ORGANIZER_APP_PATH/Contents/MacOS/WindowOrganizer" "$RUNNER_TEMP/verify-download/Window Organizer.app/Contents/MacOS/WindowOrganizer"
+      - name: Upload app download
+        uses: actions/upload-artifact@v7
+        with:
+          name: Window-Organizer-Apple-Silicon-${{ github.run_number }}
+          path: dist/Window Organizer.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
