@@ -20,8 +20,8 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     env:
-      WINDOW_ORGANIZER_BUILD_DIR: ${{ runner.temp }}/window-organizer-build
-      WINDOW_ORGANIZER_APP_PATH: ${{ runner.temp }}/Window Organizer.app
+      WINDOW_ORGANIZER_BUILD_DIR: ${{ github.workspace }}/.build
+      WINDOW_ORGANIZER_APP_PATH: ${{ github.workspace }}/dist/Window Organizer.app
     steps:
       - uses: actions/checkout@v7
         with:
